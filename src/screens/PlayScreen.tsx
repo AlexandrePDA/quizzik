@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Image, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useGameStore } from '../store/gameStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { Audio } from 'expo-av';
 import { theme } from '../constants/theme';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
 
 type PlayScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Play'>;
@@ -12,71 +13,33 @@ type PlayScreenProps = {
 
 export const PlayScreen: React.FC<PlayScreenProps> = ({ navigation }) => {
   const { game, submitVote, revealRound, nextRound } = useGameStore();
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { isPlaying, play, pause } = useAudioPlayer();
   const [currentVoterIndex, setCurrentVoterIndex] = useState(0);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [votingPhase, setVotingPhase] = useState<'listening' | 'voting' | 'revealed'>('listening');
 
-  useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [sound]);
-
-  if (!game || game.status !== 'playing') {
-    return null;
-  }
-
-  const currentTrack = game.picks[game.currentRoundIndex];
-  const currentRound = game.rounds[game.currentRoundIndex];
-  const isRevealed = currentRound?.revealedOwnerId !== undefined;
-
-  const playAudio = async () => {
-    try {
-      if (sound) {
-        await sound.unloadAsync();
-      }
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: currentTrack.previewUrl },
-        { shouldPlay: true }
-      );
-
-      setSound(newSound);
-      setIsPlaying(true);
-
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setIsPlaying(false);
-        }
-      });
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de lire le titre');
+  const playAudio = useCallback(() => {
+    if (game) {
+      play(game.picks[game.currentRoundIndex].previewUrl);
     }
-  };
+  }, [play, game]);
 
-  const pauseAudio = async () => {
-    if (sound) {
-      await sound.pauseAsync();
-      setIsPlaying(false);
-    }
-  };
+  const pauseAudio = useCallback(() => {
+    pause();
+  }, [pause]);
 
-  const handleStartVoting = () => {
+  const handleStartVoting = useCallback(() => {
     setVotingPhase('voting');
     setCurrentVoterIndex(0);
     setSelectedPlayerId(null);
-  };
+  }, []);
 
-  const handleVote = (playerId: string) => {
+  const handleVote = useCallback((playerId: string) => {
     setSelectedPlayerId(playerId);
-  };
+  }, []);
 
-  const handleConfirmVote = () => {
-    if (!selectedPlayerId) {
+  const handleConfirmVote = useCallback(() => {
+    if (!selectedPlayerId || !game) {
       Alert.alert('Erreur', 'Veuillez sélectionner un joueur');
       return;
     }
@@ -93,14 +56,12 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({ navigation }) => {
       setVotingPhase('revealed');
       revealRound();
     }
-  };
+  }, [selectedPlayerId, game, currentVoterIndex, submitVote, revealRound]);
 
-  const handleNext = () => {
-    if (sound) {
-      sound.unloadAsync();
-      setSound(null);
-    }
-    setIsPlaying(false);
+  const handleNext = useCallback(() => {
+    if (!game) return;
+    
+    pause();
     setSelectedPlayerId(null);
     setVotingPhase('listening');
     setCurrentVoterIndex(0);
@@ -112,66 +73,107 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({ navigation }) => {
     } else {
       nextRound();
     }
-  };
+  }, [pause, game, nextRound, navigation]);
 
+  if (!game || game.status !== 'playing') {
+    return null;
+  }
+
+  const currentTrack = game.picks[game.currentRoundIndex];
+  const currentRound = game.rounds[game.currentRoundIndex];
+  const isRevealed = currentRound?.revealedOwnerId !== undefined;
   const owner = game.players.find(p => p.id === currentTrack.ownerId);
   const currentVoter = votingPhase === 'voting' ? game.players[currentVoterIndex] : null;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.roundNumber}>
-        Titre {game.currentRoundIndex + 1} / {game.picks.length}
-      </Text>
+    <LinearGradient
+      colors={theme.colors.gradientVinyl}
+      style={styles.container}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={styles.roundNumber}>
+            TITRE {game.currentRoundIndex + 1} / {game.picks.length}
+          </Text>
+        </View>
 
       <View style={styles.trackContainer}>
         {currentTrack.albumCover && (
-          <Image source={{ uri: currentTrack.albumCover }} style={styles.albumCover} />
+          <View style={styles.albumWrapper}>
+            <Image source={{ uri: currentTrack.albumCover }} style={styles.albumCover} />
+            <View style={styles.albumGlow} />
+          </View>
         )}
         
-        {votingPhase === 'revealed' ? (
-          <>
-            <Text style={styles.trackTitle}>{currentTrack.title}</Text>
-            <Text style={styles.trackArtist}>{currentTrack.artist}</Text>
-            <Text style={styles.ownerText}>Titre de : {owner?.name}</Text>
-          </>
-        ) : (
-          <Text style={styles.hiddenText}>🎵 Titre mystère 🎵</Text>
-        )}
+        <View style={styles.trackInfo}>
+          <Text style={styles.trackTitle}>{currentTrack.title}</Text>
+          <Text style={styles.trackArtist}>{currentTrack.artist}</Text>
+          
+          {votingPhase === 'revealed' && (
+            <View style={styles.ownerBadge}>
+              <Text style={styles.ownerText}>🎸 {owner?.name}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <View style={styles.controls}>
         {!isPlaying ? (
-          <TouchableOpacity style={styles.playButton} onPress={playAudio}>
-            <Text style={styles.playButtonText}>▶️ Jouer</Text>
+          <TouchableOpacity style={styles.playButton} onPress={playAudio} activeOpacity={0.8}>
+            <LinearGradient
+              colors={theme.colors.gradientSecondary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.playButtonGradient}
+            >
+              <Text style={styles.playButtonText}>▶️ JOUER</Text>
+            </LinearGradient>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.playButton} onPress={pauseAudio}>
-            <Text style={styles.playButtonText}>⏸ Pause</Text>
+          <TouchableOpacity style={styles.playButton} onPress={pauseAudio} activeOpacity={0.8}>
+            <LinearGradient
+              colors={theme.colors.gradientSecondary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.playButtonGradient}
+            >
+              <Text style={styles.playButtonText}>⏸ PAUSE</Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
 
       {votingPhase === 'listening' && (
-        <TouchableOpacity style={styles.startVoteButton} onPress={handleStartVoting}>
-          <Text style={styles.startVoteButtonText}>Commencer les votes</Text>
+        <TouchableOpacity style={styles.startVoteButton} onPress={handleStartVoting} activeOpacity={0.8}>
+          <LinearGradient
+            colors={theme.colors.gradientPrimary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.startVoteGradient}
+          >
+            <Text style={styles.startVoteButtonText}>🗳 COMMENCER LES VOTES</Text>
+          </LinearGradient>
         </TouchableOpacity>
       )}
 
       {votingPhase === 'voting' && currentVoter && (
         <>
-          <Text style={styles.voteTitle}>
-            {currentVoter.name}, qui a choisi ce titre ?
-          </Text>
-          <Text style={styles.voteSubtitle}>
-            Vote {currentVoterIndex + 1} / {game.players.length}
-          </Text>
-          <FlatList
-            data={game.players}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            columnWrapperStyle={styles.playerGrid}
-            renderItem={({ item }) => (
+          <View style={styles.voteHeader}>
+            <Text style={styles.voteTitle}>
+              {currentVoter.name}
+            </Text>
+            <Text style={styles.voteQuestion}>À ton avis, qui a choisi ce titre ?</Text>
+            <Text style={styles.voteSubtitle}>
+              Vote {currentVoterIndex + 1} / {game.players.length}
+            </Text>
+          </View>
+          <View style={styles.playersContainer}>
+            {game.players.filter(p => p.id !== currentVoter.id).map((item) => (
               <TouchableOpacity
+                key={item.id}
                 style={[
                   styles.playerButton,
                   selectedPlayerId === item.id && styles.playerButtonSelected,
@@ -181,190 +183,264 @@ export const PlayScreen: React.FC<PlayScreenProps> = ({ navigation }) => {
                 <View style={[styles.colorDot, { backgroundColor: item.color }]} />
                 <Text style={styles.playerButtonText}>{item.name}</Text>
               </TouchableOpacity>
-            )}
-          />
+            ))}
+          </View>
 
           <TouchableOpacity 
             style={[styles.confirmButton, !selectedPlayerId && styles.confirmButtonDisabled]} 
             onPress={handleConfirmVote}
             disabled={!selectedPlayerId}
+            activeOpacity={0.8}
           >
-            <Text style={styles.confirmButtonText}>
-              {currentVoterIndex + 1 < game.players.length ? 'Valider et passer au suivant' : 'Valider et révéler'}
-            </Text>
+            <LinearGradient
+              colors={!selectedPlayerId ? ['#666', '#666'] : theme.colors.gradientPrimary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.confirmGradient}
+            >
+              <Text style={styles.confirmButtonText}>
+                {currentVoterIndex + 1 < game.players.length ? '✓ Valider' : '✨ Révéler'}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </>
       )}
 
       {votingPhase === 'revealed' && (
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>
-            {game.currentRoundIndex + 1 >= game.picks.length ? 'Voir les scores' : 'Titre suivant'}
-          </Text>
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.8}>
+          <LinearGradient
+            colors={theme.colors.gradientAccent}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.nextGradient}
+          >
+            <Text style={styles.nextButtonText}>
+              {game.currentRoundIndex + 1 >= game.picks.length ? '🏆 Voir les scores' : '➡️ Titre suivant'}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       )}
-    </View>
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
     padding: theme.spacing.lg,
+    paddingBottom: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 12,
   },
   roundNumber: {
-    fontSize: 18,
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 40,
-    marginBottom: 20,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
   trackContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+  },
+  albumWrapper: {
+    position: 'relative',
+    marginBottom: 16,
   },
   albumCover: {
     width: 200,
     height: 200,
-    borderRadius: theme.borderRadius.large,
-    marginBottom: 20,
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: 4,
+    borderColor: theme.colors.glassBorder,
+    ...theme.shadows.large,
+  },
+  albumGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.primary,
+    opacity: 0.2,
+    zIndex: -1,
+  },
+  trackInfo: {
+    alignItems: 'center',
+    width: '100%',
   },
   trackTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   trackArtist: {
     fontSize: 18,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  ownerBadge: {
+    backgroundColor: theme.colors.cardElevated,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: theme.borderRadius.round,
+    borderWidth: 2,
+    borderColor: theme.colors.accent,
+    marginTop: 8,
   },
   ownerText: {
-    fontSize: 20,
-    color: theme.colors.primary,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  hiddenText: {
-    fontSize: 24,
-    color: theme.colors.text,
-    textAlign: 'center',
+    fontSize: 18,
+    color: theme.colors.accent,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   controls: {
     alignItems: 'center',
     marginBottom: 30,
   },
   playButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: theme.borderRadius.large,
-    ...theme.shadows.medium,
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
+    ...theme.shadows.neon,
+  },
+  playButtonGradient: {
+    paddingHorizontal: 50,
+    paddingVertical: 18,
   },
   playButtonText: {
     color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  voteHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: theme.colors.card,
+    padding: 20,
+    borderRadius: theme.borderRadius.xl,
+    borderWidth: 2,
+    borderColor: theme.colors.glassBorder,
   },
   voteTitle: {
-    fontSize: 20,
+    fontSize: 24,
+    color: theme.colors.accent,
+    fontWeight: '900',
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  voteQuestion: {
+    fontSize: 18,
     color: theme.colors.text,
     fontWeight: '600',
-    marginBottom: 10,
-    textAlign: 'center',
+    marginBottom: 8,
   },
   voteSubtitle: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginBottom: 15,
-    textAlign: 'center',
+    fontSize: 14,
+    color: theme.colors.textMuted,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   startVoteButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    borderRadius: theme.borderRadius.large,
-    alignItems: 'center',
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
     marginTop: 20,
     ...theme.shadows.medium,
+  },
+  startVoteGradient: {
+    padding: 20,
+    alignItems: 'center',
   },
   startVoteButtonText: {
     color: theme.colors.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
   confirmButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    borderRadius: theme.borderRadius.large,
-    alignItems: 'center',
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
     marginTop: 20,
     ...theme.shadows.medium,
   },
   confirmButtonDisabled: {
-    backgroundColor: theme.colors.textMuted,
+    opacity: 0.5,
+  },
+  confirmGradient: {
+    padding: 20,
+    alignItems: 'center',
   },
   confirmButtonText: {
     color: theme.colors.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  playersContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+    marginVertical: 20,
   },
   playerGrid: {
     justifyContent: 'space-between',
   },
   playerButton: {
-    flex: 1,
+    minWidth: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.card,
-    padding: 15,
-    borderRadius: theme.borderRadius.medium,
-    margin: 5,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    padding: 16,
+    borderRadius: theme.borderRadius.large,
+    borderWidth: 3,
+    borderColor: theme.colors.glassBorder,
+    ...theme.shadows.small,
   },
   playerButtonSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.cardHover,
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.cardElevated,
+    ...theme.shadows.medium,
   },
   playerButtonText: {
     color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   colorDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  revealButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    borderRadius: theme.borderRadius.large,
-    alignItems: 'center',
-    marginTop: 20,
-    ...theme.shadows.medium,
-  },
-  revealButtonText: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: '700',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   nextButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    borderRadius: theme.borderRadius.large,
-    alignItems: 'center',
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
     marginTop: 20,
     ...theme.shadows.medium,
+  },
+  nextGradient: {
+    padding: 20,
+    alignItems: 'center',
   },
   nextButtonText: {
     color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
 });

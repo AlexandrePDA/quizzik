@@ -24,12 +24,12 @@ const slides = [
   {
     emoji: '🎵',
     title: 'Bienvenue sur Quizzik',
-    description: 'Le blind test musical nouvelle génération avec enquête !',
+    description: 'Le jeu de bluff musical ! Devinez qui a choisi chaque titre... ou restez incognito !',
   },
   {
     emoji: '👥',
     title: 'Ajoutez les joueurs',
-    description: 'Minimum 2 joueurs. Le jeu se joue sur un seul téléphone qui passe de main en main.',
+    description: 'Minimum 3 joueurs. Le jeu se joue sur un seul téléphone qui passe de main en main.',
   },
   {
     emoji: '🎼',
@@ -38,18 +38,23 @@ const slides = [
   },
   {
     emoji: '🔍',
-    title: 'Écoutez et enquêtez',
-    description: 'Un titre est joué au hasard. Discutez et essayez de deviner à qui il appartient.',
+    title: 'Écoutez et bluffez',
+    description: 'Un titre est joué au hasard. Discutez, mentez, bluffez ! Essayez de deviner à qui il appartient.',
   },
   {
     emoji: '🗳️',
-    title: 'Votez',
-    description: 'Chaque joueur vote pour désigner le propriétaire du titre. Ceux qui trouvent gagnent 1 point !',
+    title: 'Votez pour démasquer',
+    description: 'Chaque joueur vote pour désigner le propriétaire du titre. Trouvez-le = +1 point !',
+  },
+  {
+    emoji: '🎭',
+    title: 'Système de points',
+    description: '+1 point si vous devinez correctement\n+2 points si vous n\'êtes PAS démasqué quand c\'est votre titre !',
   },
   {
     emoji: '🏆',
-    title: 'Gagnez des points',
-    description: 'Si personne ne trouve, c\'est le propriétaire qui gagne 1 point. Le meilleur gagne !',
+    title: 'Gagnez la partie',
+    description: 'Le meilleur bluffeur et détective musical l\'emporte. Prêt à jouer ?',
   },
 ];
 

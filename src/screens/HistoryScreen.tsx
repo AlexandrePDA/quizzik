@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
-import { storage } from '../services/storage';
-import { GameResult } from '../types';
-import { theme } from '../constants/theme';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/types";
+import { storage } from "../services/storage";
+import { GameResult } from "../types";
+import { theme } from "../constants/theme";
 
 type HistoryScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'History'>;
+  navigation: NativeStackNavigationProp<RootStackParamList, "History">;
 };
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
@@ -24,12 +30,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -47,14 +53,17 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => (
             <View style={styles.gameCard}>
-              <Text style={styles.gameDate}>
-                Partie {index + 1} - {formatDate(item.date)}
-              </Text>
+              <Text style={styles.gameDate}>{formatDate(item.date)}</Text>
               <View style={styles.playersContainer}>
                 {item.players.map((player, idx) => (
                   <View key={idx} style={styles.playerRow}>
                     <View style={styles.playerInfo}>
-                      <View style={[styles.colorDot, { backgroundColor: player.color || '#666' }]} />
+                      <View
+                        style={[
+                          styles.colorDot,
+                          { backgroundColor: player.color || "#666" },
+                        ]}
+                      />
                       <Text style={styles.playerName}>{player.name}</Text>
                     </View>
                     <Text style={styles.playerScore}>{player.score} pts</Text>
@@ -77,15 +86,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: theme.colors.text,
     marginTop: 40,
     marginBottom: 20,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyText: {
     fontSize: 18,
@@ -108,14 +117,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   playerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 5,
   },
   playerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   colorDot: {
     width: 16,
@@ -129,7 +138,7 @@ const styles = StyleSheet.create({
   },
   playerScore: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: theme.colors.primary,
   },
 });

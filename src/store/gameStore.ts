@@ -164,18 +164,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     const currentTrack = game.picks[game.currentRoundIndex];
     const ownerId = currentTrack.ownerId;
 
-    // Calculate points
-    const correctVoters = currentRound.votes.filter(v => v.targetPlayerId === ownerId);
+    // Calculate points - Nouveau système type "loup-garou"
     const pointsAwarded: Array<{ playerId: string; delta: number }> = [];
+    
+    // 1. Chaque joueur qui devine correctement gagne 1 point
+    const correctVoters = currentRound.votes.filter(v => v.targetPlayerId === ownerId);
+    correctVoters.forEach(v => {
+      pointsAwarded.push({ playerId: v.voterId, delta: 1 });
+    });
 
-    if (correctVoters.length > 0) {
-      // Each correct voter gets 1 point
-      correctVoters.forEach(v => {
-        pointsAwarded.push({ playerId: v.voterId, delta: 1 });
-      });
-    } else {
-      // Nobody found it, owner gets 1 point
-      pointsAwarded.push({ playerId: ownerId, delta: 1 });
+    // 2. Le propriétaire gagne 2 points s'il n'a PAS été démasqué par TOUS les joueurs
+    // (au moins un joueur s'est trompé ou n'a pas voté pour lui)
+    const totalVoters = currentRound.votes.length;
+    const correctGuesses = correctVoters.length;
+    
+    // Si au moins un joueur ne l'a pas trouvé, le propriétaire gagne 2 points
+    if (correctGuesses < totalVoters) {
+      pointsAwarded.push({ playerId: ownerId, delta: 2 });
     }
 
     const updatedRounds = [...game.rounds];

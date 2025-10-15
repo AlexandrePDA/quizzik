@@ -72,8 +72,8 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
         setSearchResults([]);
       } else {
         // All players done
-        Alert.alert('Prêt !', 'Tous les joueurs ont ajouté leurs titres', [
-          { text: 'Commencer', onPress: () => {
+        Alert.alert('C\'est parti !', 'Tous les joueurs ont choisi leurs titres. Que le meilleur bluffeur gagne !', [
+          { text: 'Lancer la partie', onPress: () => {
             startGame();
             navigation.navigate('Play');
           }}
@@ -86,7 +86,7 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{currentPlayer.name}</Text>
-        <Text style={styles.subtitle}>Choisissez {picksNeeded} titre(s)</Text>
+        <Text style={styles.subtitle}>Choisis {picksNeeded} titre(s) secrets pour bluffer !</Text>
       </View>
 
       <View style={styles.searchContainer}>

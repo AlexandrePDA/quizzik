@@ -6,6 +6,7 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useGameStore } from "../store/gameStore";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
@@ -72,7 +73,7 @@ export const ScoresScreen: React.FC<ScoresScreenProps> = ({ navigation }) => {
       await storage.saveGameResult(result);
     };
     saveResult();
-  }, [game?.id, scores.length]);
+  }, [game?.id, game?.status, scores.length]);
 
   if (!game) {
     return null;
@@ -83,22 +84,57 @@ export const ScoresScreen: React.FC<ScoresScreenProps> = ({ navigation }) => {
     navigation.navigate("Home");
   };
 
+  const getMedalEmoji = (index: number) => {
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return `${index + 1}`;
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🏆 Classement Final 🏆</Text>
+    <LinearGradient
+      colors={theme.colors.gradientVinyl}
+      style={styles.container}
+    >
+      <View style={styles.header}>
+        <Text style={styles.trophy}>🏆</Text>
+        <Text style={styles.title}>CLASSEMENT</Text>
+        <LinearGradient
+          colors={[theme.colors.tertiary, theme.colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.titleUnderline}
+        />
+      </View>
 
       <FlatList
         data={scores}
         keyExtractor={(item) => item.player.id}
         style={styles.list}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item, index }) => (
-          <View style={[styles.scoreItem, index === 0 && styles.firstPlace]}>
-            <Text style={styles.rank}>{index + 1}</Text>
+          <View style={[
+            styles.scoreItem,
+            index === 0 && styles.firstPlace,
+            index === 1 && styles.secondPlace,
+            index === 2 && styles.thirdPlace,
+          ]}>
+            <View style={styles.rankContainer}>
+              <Text style={[
+                styles.rank,
+                index < 3 && styles.rankMedal
+              ]}>
+                {getMedalEmoji(index)}
+              </Text>
+            </View>
             <View
               style={[styles.colorDot, { backgroundColor: item.player.color }]}
             />
             <Text style={styles.playerName}>{item.player.name}</Text>
-            <Text style={styles.points}>{item.points} pts</Text>
+            <View style={styles.pointsContainer}>
+              <Text style={styles.points}>{item.points}</Text>
+              <Text style={styles.pointsLabel}>pts</Text>
+            </View>
           </View>
         )}
       />
@@ -106,78 +142,138 @@ export const ScoresScreen: React.FC<ScoresScreenProps> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.playAgainButton}
         onPress={handlePlayAgain}
+        activeOpacity={0.8}
       >
-        <Text style={styles.playAgainButtonText}>Rejouer</Text>
+        <LinearGradient
+          colors={theme.colors.gradientPrimary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.playAgainGradient}
+        >
+          <Text style={styles.playAgainButtonText}>🎵 Rejouer</Text>
+        </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
     padding: theme.spacing.lg,
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 30,
+    paddingBottom: 20,
+  },
+  trophy: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
+    fontWeight: "900",
     color: theme.colors.text,
     textAlign: "center",
-    marginTop: 60,
-    marginBottom: 30,
+    letterSpacing: 3,
+    marginBottom: 10,
+  },
+  titleUnderline: {
+    width: 100,
+    height: 3,
+    borderRadius: 2,
   },
   list: {
     flex: 1,
-    marginBottom: 20,
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   scoreItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.card,
     padding: 20,
-    borderRadius: theme.borderRadius.large,
-    marginBottom: 12,
-    borderWidth: 1,
+    borderRadius: theme.borderRadius.xl,
+    marginBottom: 16,
+    borderWidth: 2,
     borderColor: theme.colors.glassBorder,
+    ...theme.shadows.small,
   },
   firstPlace: {
-    backgroundColor: theme.colors.primary,
+    borderWidth: 3,
+    borderColor: theme.colors.tertiary,
+    backgroundColor: theme.colors.cardElevated,
     ...theme.shadows.large,
   },
+  secondPlace: {
+    borderWidth: 3,
+    borderColor: '#C0C0C0',
+    backgroundColor: theme.colors.cardElevated,
+  },
+  thirdPlace: {
+    borderWidth: 3,
+    borderColor: '#CD7F32',
+    backgroundColor: theme.colors.cardElevated,
+  },
+  rankContainer: {
+    width: 50,
+    alignItems: 'center',
+  },
   rank: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.text,
-    width: 40,
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.textSecondary,
+  },
+  rankMedal: {
+    fontSize: 32,
   },
   colorDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 16,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   playerName: {
     flex: 1,
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 22,
+    fontWeight: "700",
     color: theme.colors.text,
+    letterSpacing: 0.5,
+  },
+  pointsContainer: {
+    alignItems: 'flex-end',
   },
   points: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.text,
+    fontSize: 28,
+    fontWeight: "900",
+    color: theme.colors.accent,
+    letterSpacing: 1,
+  },
+  pointsLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    letterSpacing: 1,
   },
   playAgainButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    borderRadius: theme.borderRadius.large,
-    alignItems: "center",
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
+    marginTop: 20,
+    marginBottom: 30,
     ...theme.shadows.medium,
+  },
+  playAgainGradient: {
+    padding: 20,
+    alignItems: "center",
   },
   playAgainButtonText: {
     color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 });

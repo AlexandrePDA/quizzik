@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useGameStore } from '../store/gameStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { theme } from '../constants/theme';
+import { GAME_CONSTANTS } from '../constants/game';
 
 type AddPlayersScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AddPlayers'>;
@@ -13,7 +15,7 @@ export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }
   const { game, addPlayer, removePlayer } = useGameStore();
   const [playerName, setPlayerName] = useState('');
 
-  const handleAddPlayer = () => {
+  const handleAddPlayer = useCallback(() => {
     if (!playerName.trim()) {
       Alert.alert('Erreur', 'Veuillez entrer un nom');
       return;
@@ -21,21 +23,24 @@ export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }
 
     addPlayer(playerName.trim());
     setPlayerName('');
-  };
+  }, [playerName, addPlayer]);
 
-  const handleContinue = () => {
-    if (!game || game.players.length < 2) {
-      Alert.alert('Erreur', 'Il faut au moins 2 joueurs');
+  const handleContinue = useCallback(() => {
+    if (!game || game.players.length < GAME_CONSTANTS.MIN_PLAYERS) {
+      Alert.alert('Erreur', `Il faut au moins ${GAME_CONSTANTS.MIN_PLAYERS} joueurs`);
       return;
     }
 
     navigation.navigate('AddPicks');
-  };
+  }, [game, navigation]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Ajouter les joueurs</Text>
-      <Text style={styles.subtitle}>Minimum 2 joueurs</Text>
+    <LinearGradient
+      colors={theme.colors.gradientVinyl}
+      style={styles.container}
+    >
+      <Text style={styles.title}>👥 JOUEURS</Text>
+      <Text style={styles.subtitle}>Qui va bluffer le mieux ? (min. 3 joueurs)</Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -66,30 +71,37 @@ export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }
         )}
       />
 
-      {game && game.players.length >= 2 && (
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-          <Text style={styles.continueButtonText}>Continuer</Text>
+      {game && game.players.length >= GAME_CONSTANTS.MIN_PLAYERS && (
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
+          <LinearGradient
+            colors={theme.colors.gradientPrimary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.continueButtonGradient}
+          >
+            <Text style={styles.continueButtonText}>Continuer →</Text>
+          </LinearGradient>
         </TouchableOpacity>
       )}
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
     padding: 20,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: theme.colors.text,
-    marginTop: 40,
-    marginBottom: 10,
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 2,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     marginBottom: 30,
   },
@@ -110,16 +122,16 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: theme.colors.primary,
-    width: 50,
+    width: 56,
     borderRadius: theme.borderRadius.medium,
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.small,
+    ...theme.shadows.medium,
   },
   addButtonText: {
     color: theme.colors.text,
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '900',
   },
   list: {
     flex: 1,
@@ -129,38 +141,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.card,
-    padding: 15,
-    borderRadius: theme.borderRadius.medium,
-    marginBottom: 10,
-    borderWidth: 1,
+    padding: 18,
+    borderRadius: theme.borderRadius.large,
+    marginBottom: 12,
+    borderWidth: 2,
     borderColor: theme.colors.glassBorder,
+    ...theme.shadows.small,
   },
   colorDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 15,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   playerName: {
     flex: 1,
     color: theme.colors.text,
-    fontSize: 18,
+    fontSize: 19,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   removeButton: {
-    color: theme.colors.primary,
-    fontSize: 24,
-    fontWeight: 'bold',
+    color: theme.colors.error,
+    fontSize: 28,
+    fontWeight: '700',
   },
   continueButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 18,
-    borderRadius: theme.borderRadius.large,
-    alignItems: 'center',
+    borderRadius: theme.borderRadius.xl,
+    overflow: 'hidden',
     ...theme.shadows.medium,
+  },
+  continueButtonGradient: {
+    padding: 20,
+    alignItems: 'center',
   },
   continueButtonText: {
     color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
 });
