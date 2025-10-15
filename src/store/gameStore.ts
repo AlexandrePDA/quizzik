@@ -10,6 +10,7 @@ interface GameState {
   addPlayer: (name: string, color?: string) => void;
   removePlayer: (playerId: string) => void;
   addTrackPick: (ownerId: string, track: Omit<TrackPick, 'id' | 'ownerId'>) => void;
+  removeTrackPick: (pickId: string) => void;
   startGame: () => void;
   submitVote: (voterId: string, targetPlayerId: string) => void;
   revealRound: () => void;
@@ -87,6 +88,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     const updatedGame = {
       ...game,
       picks: [...game.picks, newPick],
+    };
+
+    set({ game: updatedGame });
+    storage.saveGame(updatedGame);
+  },
+
+  removeTrackPick: (pickId: string) => {
+    const { game } = get();
+    if (!game) return;
+
+    const updatedGame = {
+      ...game,
+      picks: game.picks.filter(p => p.id !== pickId),
     };
 
     set({ game: updatedGame });

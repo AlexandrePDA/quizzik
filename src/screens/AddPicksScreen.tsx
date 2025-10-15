@@ -12,7 +12,7 @@ type AddPicksScreenProps = {
 };
 
 export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) => {
-  const { game, addTrackPick, startGame } = useGameStore();
+  const { game, addTrackPick, removeTrackPick, startGame } = useGameStore();
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
@@ -49,10 +49,17 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
 
   const handleSelectTrack = (track: DeezerTrack) => {
     // Check if player already selected this track
-    const alreadySelected = playerPicks.some(pick => pick.deezerTrackId === track.id.toString());
+    const existingPick = playerPicks.find(pick => pick.deezerTrackId === track.id.toString());
     
-    if (alreadySelected) {
-      Alert.alert('Déjà sélectionné', 'Vous avez déjà choisi ce titre');
+    if (existingPick) {
+      // Désélectionner le titre
+      removeTrackPick(existingPick.id);
+      return;
+    }
+
+    // Vérifier si le joueur a atteint la limite
+    if (playerPicks.length >= game.settings.picksPerPlayer) {
+      Alert.alert('Limite atteinte', `Vous ne pouvez choisir que ${game.settings.picksPerPlayer} titres`);
       return;
     }
 
@@ -122,9 +129,8 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
           const isAlreadySelected = playerPicks.some(pick => pick.deezerTrackId === item.id.toString());
           return (
             <TouchableOpacity 
-              style={[styles.trackItem, isAlreadySelected && styles.trackItemDisabled]} 
+              style={[styles.trackItem, isAlreadySelected && styles.trackItemSelected]} 
               onPress={() => handleSelectTrack(item)}
-              disabled={isAlreadySelected}
             >
               <Image source={{ uri: item.album.cover_medium }} style={styles.albumCover} />
               <View style={styles.trackInfo}>
@@ -132,7 +138,7 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
                 <Text style={styles.trackArtist} numberOfLines={1}>{item.artist.name}</Text>
               </View>
               {isAlreadySelected && (
-                <Text style={styles.selectedBadge}>✓</Text>
+                <Text style={styles.selectedBadge}>✓ Sélectionné</Text>
               )}
             </TouchableOpacity>
           );
@@ -239,13 +245,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: 14,
   },
-  trackItemDisabled: {
-    opacity: 0.5,
-    backgroundColor: theme.colors.backgroundSecondary,
+  trackItemSelected: {
+    backgroundColor: theme.colors.cardElevated,
+    borderColor: theme.colors.primary,
+    borderWidth: 2,
   },
   selectedBadge: {
-    color: theme.colors.success,
-    fontSize: 24,
+    color: theme.colors.primary,
+    fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 10,
   },
