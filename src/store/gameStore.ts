@@ -173,13 +173,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       pointsAwarded.push({ playerId: v.voterId, delta: 1 });
     });
 
-    // 2. Le propriétaire gagne 2 points s'il n'a PAS été démasqué par TOUS les joueurs
-    // (au moins un joueur s'est trompé ou n'a pas voté pour lui)
-    const totalVoters = currentRound.votes.length;
-    const correctGuesses = correctVoters.length;
-    
-    // Si au moins un joueur ne l'a pas trouvé, le propriétaire gagne 2 points
-    if (correctGuesses < totalVoters) {
+    // 2. Le propriétaire gagne 2 points SEULEMENT si PERSONNE ne l'a démasqué (bluff parfait)
+    if (correctVoters.length === 0) {
       pointsAwarded.push({ playerId: ownerId, delta: 2 });
     }
 

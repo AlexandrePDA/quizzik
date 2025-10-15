@@ -22,10 +22,12 @@ Pour chaque titre :
 3. **Vote** : Chaque joueur vote pour désigner le propriétaire
 4. **Révélation** : Le propriétaire est dévoilé
 
-### 3. Système de Points 
+### 3. Système de Points 🏆
 
 **+1 point** : Si vous devinez correctement à qui appartient le titre
-**+2 points** : Si vous n'êtes PAS démasqué quand c'est VOTRE titre (au moins un joueur s'est trompé)
+**+2 points** : Si PERSONNE ne vous démasque quand c'est VOTRE titre (bluff parfait !)
+
+⚠️ **Important** : Le propriétaire gagne 2 points UNIQUEMENT si 0 joueur a voté pour lui. Si au moins 1 joueur trouve, il ne gagne rien.
 
 Le joueur avec le plus de points à la fin gagne !
 

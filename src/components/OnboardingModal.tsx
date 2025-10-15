@@ -49,7 +49,7 @@ const slides = [
   {
     emoji: '🎭',
     title: 'Système de points',
-    description: '+1 point si vous devinez correctement\n+2 points si vous n\'êtes PAS démasqué quand c\'est votre titre !',
+    description: '+1 point si vous devinez correctement\n+2 points si PERSONNE ne vous trouve (bluff parfait) !',
   },
   {
     emoji: '🏆',
