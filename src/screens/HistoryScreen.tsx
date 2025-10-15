@@ -6,11 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { storage } from "../services/storage";
 import { GameResult } from "../types";
 import { theme } from "../constants/theme";
+import { usePremiumStore } from "../store/premiumStore";
 
 type HistoryScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, "History">;
@@ -18,10 +20,13 @@ type HistoryScreenProps = {
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const [history, setHistory] = useState<GameResult[]>([]);
+  const { canAccessHistory } = usePremiumStore();
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (canAccessHistory()) {
+      loadHistory();
+    }
+  }, [canAccessHistory]);
 
   const loadHistory = async () => {
     const data = await storage.getGameHistory();
@@ -38,6 +43,33 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
       minute: "2-digit",
     });
   };
+
+  if (!canAccessHistory()) {
+    return (
+      <LinearGradient colors={theme.colors.gradientVinyl} style={styles.container}>
+        <View style={styles.premiumUpsell}>
+          <Text style={styles.lockEmoji}>🔒</Text>
+          <Text style={styles.upsellTitle}>Historique Premium</Text>
+          <Text style={styles.upsellText}>
+            Accédez à l'historique complet de vos parties et suivez vos statistiques !
+          </Text>
+          <TouchableOpacity
+            style={styles.premiumButton}
+            onPress={() => navigation.navigate("Premium")}
+          >
+            <LinearGradient
+              colors={theme.colors.gradientPrimary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.premiumGradient}
+            >
+              <Text style={styles.premiumButtonText}>💎 Passer Premium</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -140,5 +172,45 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: theme.colors.primary,
+  },
+  premiumUpsell: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+  },
+  lockEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  upsellTitle: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: theme.colors.text,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  upsellText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 40,
+    lineHeight: 24,
+  },
+  premiumButton: {
+    borderRadius: theme.borderRadius.xl,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
+  premiumGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  premiumButtonText: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 });

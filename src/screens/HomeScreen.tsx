@@ -14,6 +14,7 @@ import { theme } from "../constants/theme";
 import { OnboardingModal } from "../components/OnboardingModal";
 import { storage } from "../services/storage";
 import { GAME_CONSTANTS, GAME_STATUS } from "../constants/game";
+import { usePremiumStore } from "../store/premiumStore";
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, "Home">;
@@ -24,9 +25,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const spinValue = React.useRef(new Animated.Value(0)).current;
 
+  const { loadPremiumStatus, isPremium } = usePremiumStore();
+
   useEffect(() => {
     loadGame();
+    loadPremiumStatus();
     checkOnboarding();
+    console.log('HomeScreen - isPremium:', isPremium);
     
     // Animation de rotation du vinyle
     Animated.loop(
@@ -90,6 +95,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <Text style={styles.infoButtonText}>ℹ️</Text>
       </TouchableOpacity>
 
+      {!isPremium && (
+        <TouchableOpacity
+          style={styles.premiumButton}
+          onPress={() => navigation.navigate("Premium")}
+        >
+          <LinearGradient
+            colors={[theme.colors.accent, theme.colors.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.premiumGradient}
+          >
+            <Text style={styles.premiumButtonText}>💎 Premium</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.header}>
         <Animated.View style={[styles.vinylIcon, { transform: [{ rotate: spin }] }]}>
           <View style={styles.vinylGroove1} />
@@ -127,7 +148,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </LinearGradient>
         </TouchableOpacity>
 
-        {game && game.status !== GAME_STATUS.SETUP && (
+        {game && game.status !== GAME_STATUS.SETUP && isPremium && (
           <TouchableOpacity
             style={styles.buttonSecondary}
             onPress={handleContinueGame}
@@ -143,6 +164,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           activeOpacity={0.8}
         >
           <Text style={styles.buttonTextSecondary}>📜 Historique</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.buttonSecondary}
+          onPress={() => navigation.navigate("Premium")}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonTextSecondary}>
+            {isPremium ? '💎 Gérer Premium' : '💎 Passer Premium'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -197,6 +228,26 @@ const styles = StyleSheet.create({
   },
   infoButtonText: {
     fontSize: 24,
+  },
+  premiumButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    borderRadius: 20,
+    overflow: "hidden",
+    ...theme.shadows.medium,
+  },
+  premiumGradient: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  premiumButtonText: {
+    color: theme.colors.background,
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
   header: {
     alignItems: "center",

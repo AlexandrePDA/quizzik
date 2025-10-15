@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { Game, Player, TrackPick, Vote, Round } from '../types';
 import { storage } from '../services/storage';
+import { usePremiumStore } from './premiumStore';
 
 interface GameState {
   game: Game | null;
   
   // Actions
   createGame: () => void;
+  updateGameSettings: (picksPerPlayer: number) => void;
   addPlayer: (name: string, color?: string) => void;
   removePlayer: (playerId: string) => void;
   addTrackPick: (ownerId: string, track: Omit<TrackPick, 'id' | 'ownerId'>) => void;
@@ -23,20 +25,41 @@ export const useGameStore = create<GameState>((set, get) => ({
   game: null,
 
   createGame: () => {
+    const { getPicksPerPlayer, isPremium } = usePremiumStore.getState();
+    
     const newGame: Game = {
       id: Date.now().toString(),
       players: [],
       picks: [],
       rounds: [],
-      settings: {
-        picksPerPlayer: 3,
-        premiumEnabled: false,
-      },
-      status: 'setup',
       currentRoundIndex: 0,
+      status: 'setup',
+      settings: {
+        picksPerPlayer: getPicksPerPlayer(),
+        premiumEnabled: isPremium,
+      },
     };
+
     set({ game: newGame });
     storage.saveGame(newGame);
+  },
+
+  updateGameSettings: (picksPerPlayer: number) => {
+    const { game } = get();
+    if (!game) return;
+
+    // Si on change le nombre de titres, on réinitialise tous les picks
+    const updatedGame = {
+      ...game,
+      picks: [], // Réinitialiser les picks
+      settings: {
+        ...game.settings,
+        picksPerPlayer,
+      },
+    };
+
+    set({ game: updatedGame });
+    storage.saveGame(updatedGame);
   },
 
   addPlayer: (name: string, color?: string) => {

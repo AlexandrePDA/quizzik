@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { theme } from '../constants/theme';
 import { GAME_CONSTANTS } from '../constants/game';
+import { usePremiumStore } from '../store/premiumStore';
 
 type AddPlayersScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AddPlayers'>;
@@ -13,7 +14,10 @@ type AddPlayersScreenProps = {
 
 export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }) => {
   const { game, addPlayer, removePlayer } = useGameStore();
+  const { getMaxPlayers, isPremium } = usePremiumStore();
   const [playerName, setPlayerName] = useState('');
+
+  const maxPlayers = getMaxPlayers();
 
   const handleAddPlayer = useCallback(() => {
     if (!playerName.trim()) {
@@ -21,9 +25,28 @@ export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }
       return;
     }
 
+    // Vérifier la limite de joueurs
+    if (game && game.players.length >= maxPlayers) {
+      if (!isPremium) {
+        // Utilisateur gratuit : proposer Premium
+        Alert.alert(
+          'Limite atteinte',
+          `Version gratuite limitée à ${maxPlayers} joueurs.\n\nPassez Premium pour jouer jusqu'à 10 joueurs !`,
+          [
+            { text: 'Plus tard', style: 'cancel' },
+            { text: 'Voir Premium', onPress: () => navigation.navigate('Premium') }
+          ]
+        );
+      } else {
+        // Utilisateur premium à 10 joueurs : juste informer
+        Alert.alert('Limite atteinte', `Maximum ${maxPlayers} joueurs pour une partie.`);
+      }
+      return;
+    }
+
     addPlayer(playerName.trim());
     setPlayerName('');
-  }, [playerName, addPlayer]);
+  }, [playerName, addPlayer, game, maxPlayers, navigation]);
 
   const handleContinue = useCallback(() => {
     if (!game || game.players.length < GAME_CONSTANTS.MIN_PLAYERS) {
@@ -31,8 +54,14 @@ export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }
       return;
     }
 
-    navigation.navigate('AddPicks');
-  }, [game, navigation]);
+    // Si premium, aller sur l'écran de choix du nombre de titres
+    // Sinon, aller directement sur AddPicks
+    if (isPremium) {
+      navigation.navigate('PicksSettings');
+    } else {
+      navigation.navigate('AddPicks');
+    }
+  }, [game, isPremium, navigation]);
 
   return (
     <LinearGradient
@@ -40,7 +69,12 @@ export const AddPlayersScreen: React.FC<AddPlayersScreenProps> = ({ navigation }
       style={styles.container}
     >
       <Text style={styles.title}>👥 JOUEURS</Text>
-      <Text style={styles.subtitle}>Qui va bluffer le mieux ? (min. 3 joueurs)</Text>
+      <Text style={styles.subtitle}>
+        Qui va bluffer le mieux ? (min. 3 joueurs)
+      </Text>
+      <Text style={styles.playerCount}>
+        {game?.players.length || 0} / {maxPlayers} joueurs {!isPremium && '(Gratuit)'}
+      </Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -103,7 +137,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     color: theme.colors.textSecondary,
-    marginBottom: 30,
+    marginBottom: 10,
+  },
+  playerCount: {
+    fontSize: 14,
+    color: theme.colors.accent,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',

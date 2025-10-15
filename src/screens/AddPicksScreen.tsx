@@ -12,7 +12,7 @@ type AddPicksScreenProps = {
 };
 
 export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) => {
-  const { game, addTrackPick, removeTrackPick, startGame } = useGameStore();
+  const { game, addTrackPick, removeTrackPick, startGame, resetGame } = useGameStore();
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
@@ -32,6 +32,24 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
 
   const playerPicks = game.picks.filter(p => p.ownerId === currentPlayer.id);
   const picksNeeded = game.settings.picksPerPlayer - playerPicks.length;
+
+  const handleQuit = () => {
+    Alert.alert(
+      'Quitter la partie',
+      'Êtes-vous sûr de vouloir abandonner ? Tous les choix seront perdus.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Quitter',
+          style: 'destructive',
+          onPress: () => {
+            resetGame();
+            navigation.navigate('Home');
+          },
+        },
+      ]
+    );
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -91,6 +109,10 @@ export const AddPicksScreen: React.FC<AddPicksScreenProps> = ({ navigation }) =>
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.quitButton} onPress={handleQuit}>
+        <Text style={styles.quitButtonText}>✕ Quitter</Text>
+      </TouchableOpacity>
+
       <View style={styles.header}>
         <Text style={styles.title}>{currentPlayer.name}</Text>
         <Text style={styles.subtitle}>Choisis {picksNeeded} titre(s) secrets pour bluffer !</Text>
@@ -255,5 +277,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 10,
+  },
+  quitButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 59, 48, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.medium,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.5)',
+  },
+  quitButtonText: {
+    color: '#ff3b30',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
